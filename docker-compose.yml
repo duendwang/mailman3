@@ -5,7 +5,7 @@ services:
 #    hostname: mailman-core
     restart: unless-stopped
     volumes:
-      - data/core:/opt/mailman/
+      - ./data/core:/opt/mailman/
     stop_grace_period: 30s
     depends_on:
       database:
@@ -34,18 +34,13 @@ services:
 #      - mailman-core:mailman-core
 #      - database:database
     volumes:
-      - data/web:/opt/mailman-web-data
+      - ./data/web:/opt/mailman-web-data
     environment:
       - DATABASE_TYPE=postgres
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
       - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
       - SECRET_KEY=${SECRET_KEY:?missing SECRET_KEY}
       - UWSGI_STATIC_MAP=/static=/opt/mailman-web-data/static
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mailman.entrypoints=websecure"
-      - "traefik.http.routers.mailman.rule=Host(`$DOMAIN`)"
-      - "traefik.http.routers.mailman.tls.certresolver=http-challenge"
     expose:
       - 8000 #HTTP
       - 8080 #uwsgi
@@ -63,8 +58,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing POSTGRES_PASSWORD}
     restart: always
     image: postgres:12-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --dbname ${POSTGRES_DB:-mailman} --username ${POSTGRES_USER:-mailman}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
-    - data/database:/var/lib/postgresql/data
+    - ./data/database:/var/lib/postgresql/data
     networks:
       - mailman
 
