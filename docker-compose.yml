@@ -1,0 +1,74 @@
+services:
+  mailman-core:
+    image: maxking/mailman-core:0.4 # Use a specific version tag (tag latest is not published)
+#    container_name: mailman-core
+#    hostname: mailman-core
+    restart: unless-stopped
+    volumes:
+      - data/core:/opt/mailman/
+    stop_grace_period: 30s
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
+      - DATABASE_TYPE=postgres
+      - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
+    expose:
+      - 8001 #API
+    ports:
+#      - "127.0.0.1:8001:8001" # API
+      - "127.0.0.1:8024:8024" # LMTP - incoming emails
+    networks:
+      - mailman
+
+  mailman-web:
+    image: maxking/postorius:0.4 # Use a specific version tag (tag latest is not published)
+#    container_name: mailman-web
+#    hostname: mailman-web
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+#    links:
+#      - mailman-core:mailman-core
+#      - database:database
+    volumes:
+      - data/web:/opt/mailman-web-data
+    environment:
+      - DATABASE_TYPE=postgres
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
+      - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
+      - SECRET_KEY=${SECRET_KEY:?missing SECRET_KEY}
+      - UWSGI_STATIC_MAP=/static=/opt/mailman-web-data/static
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailman.entrypoints=websecure"
+      - "traefik.http.routers.mailman.rule=Host(`$DOMAIN`)"
+      - "traefik.http.routers.mailman.tls.certresolver=http-challenge"
+    expose:
+      - 8000 #HTTP
+      - 8080 #uwsgi
+#    ports:
+#      - "127.0.0.1:8000:8000" # HTTP
+#      - "127.0.0.1:8080:8080" # uwsgi
+    networks:
+      - mailman
+      - traefik-proxy
+
+  database:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mailman}
+      POSTGRES_USER: ${POSTGRES_USER:-mailman}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing POSTGRES_PASSWORD}
+    restart: always
+    image: postgres:12-alpine
+    volumes:
+    - data/database:/var/lib/postgresql/data
+    networks:
+      - mailman
+
+networks:
+  mailman:
+  traefik-proxy:
+    external: true
