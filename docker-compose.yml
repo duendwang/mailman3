@@ -41,6 +41,11 @@ services:
       - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
       - SECRET_KEY=${SECRET_KEY:?missing SECRET_KEY}
       - UWSGI_STATIC_MAP=/static=/opt/mailman-web-data/static
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailman.entrypoints=websecure"
+      - "traefik.http.routers.mailman.rule=Host(`$DOMAIN`)"
+      - "traefik.http.routers.mailman.tls.certresolver=http-challenge"
     expose:
       - 8000 #HTTP
       - 8080 #uwsgi
