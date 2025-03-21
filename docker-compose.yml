@@ -1,6 +1,6 @@
 services:
   mailman-core:
-    image: maxking/mailman-core:0.4 # Use a specific version tag (tag latest is not published)
+    image: maxking/mailman-core:0.5.2 # Use a specific version tag (tag latest is not published)
 #    container_name: mailman-core
 #    hostname: mailman-core
     restart: unless-stopped
@@ -14,6 +14,13 @@ services:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
       - DATABASE_TYPE=postgres
       - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
+      - HYPERKITTY_API_KEY=${HYPERKITTY_API_KEY:?missing HYPERKITTY_API_KEY}
+      - MTA=${MTA:-exim}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-25}
+      - SMTP_SECURE_MODE=${SMTP_SECURE_MODE:-smtp}
+      - SMTP_VERIFY_HOSTNAME=${SMTP_VERIFY_HOSTNAME}
+      - SMTP_VERIFY_CERT=${SMTP_VERIFY_CERT}
     expose:
       - 8001 #API
     ports:
@@ -23,7 +30,7 @@ services:
       - mailman
 
   mailman-web:
-    image: maxking/postorius:0.4 # Use a specific version tag (tag latest is not published)
+    image: maxking/mailman-web:0.5.2 # Use a specific version tag (tag latest is not published)
 #    container_name: mailman-web
 #    hostname: mailman-web
     restart: unless-stopped
@@ -41,11 +48,27 @@ services:
       - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
       - SECRET_KEY=${SECRET_KEY:?missing SECRET_KEY}
       - UWSGI_STATIC_MAP=/static=/opt/mailman-web-data/static
+      - SERVE_FROM_DOMAIN=${DOMAIN:?missing DOMAIN}
+      - HYPERKITTY_API_KEY=${HYPERKITTY_API_KEY:?missing HYPERKITTY_API_KEY}
+      - MAILMAN_ADMIN_USER=${MAILMAN_ADMIN_USER:?missing MAILMAN_ADMIN_USER}
+      - MAILMAN_ADMIN_EMAIL=${MAILMAN_ADMIN_EMAIL:?mising MAILMAN_ADMIN_EMAIL}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-25}
+      - SMTP_HOST_USER=${SMTP_HOST_USER:?missing SMTP_HOST_USER}
+      - SMTP_HOST_PASSWORD=${SMTP_HOST_PASSWORD:?missing SMTP_HOST_PASSWORD}
+      - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - SMTP_USE_SSL=${SMTP_USE_SSL}
+      - DJANGO_LOG_URL${DJANGO_LOG_URL:-/opt/mailman-web-data/logs/mailmanweb.log}
+      - DJANGO_ALLOWED_HOSTS=${DOMAIN}
+      - POSTORIUS_TEMPLATE_BASE_URL=${POSTORIUS_TEMPLATE_BASE_URL:-http://mailman-web:8000}
+      - DISKCACHE_PATH=${DISKCACHE_PATH:-/opt/mailman-web-data/diskcache}
+      - DISKCACHE_SIZE=${DISKCACHE_SIZE:-1G}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mailman.entrypoints=websecure"
       - "traefik.http.routers.mailman.rule=Host(`$DOMAIN`)"
       - "traefik.http.routers.mailman.tls.certresolver=http-challenge"
+      - "traefik.http.services.mailman.loadbalancer.server.port=8080"
     expose:
       - 8000 #HTTP
       - 8080 #uwsgi
