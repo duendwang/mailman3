@@ -4,6 +4,12 @@ services:
 #    container_name: mailman-core
 #    hostname: mailman-core
     restart: unless-stopped
+    user: ${PUID:-1000}:${PGID:-1000}
+    security_opt:
+      - "no-new-privileges:true"
+    cap-drop:
+      - SETUID
+      - SETGID
     volumes:
       - ./data/core:/opt/mailman/
     stop_grace_period: 30s
@@ -34,6 +40,12 @@ services:
 #    container_name: mailman-web
 #    hostname: mailman-web
     restart: unless-stopped
+    user: ${PUID:-1000}:${PGID:-1000}
+    security_opt:
+      - "no-new-privileges:true"
+    cap-drop:
+      - SETUID
+      - SETGID
     depends_on:
       database:
         condition: service_healthy
@@ -80,17 +92,23 @@ services:
       - traefik-proxy
 
   database:
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-mailman}
-      POSTGRES_USER: ${POSTGRES_USER:-mailman}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing POSTGRES_PASSWORD}
-    restart: always
     image: postgres:12-alpine
+    restart: always
+    user: ${PUID:-1000}:${PGID:-1000}
+    security_opt:
+      - "no-new-privileges:true"
+    cap-drop:
+      - SETUID
+      - SETGID
     healthcheck:
       test: ["CMD-SHELL", "pg_isready --dbname ${POSTGRES_DB:-mailman} --username ${POSTGRES_USER:-mailman}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mailman}
+      POSTGRES_USER: ${POSTGRES_USER:-mailman}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing POSTGRES_PASSWORD}
     volumes:
     - ./data/database:/var/lib/postgresql/data
     networks:
