@@ -17,8 +17,8 @@ services:
       database:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
-      - DATABASE_TYPE=postgres
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
+      - DATABASE_TYPE=postgresql
       - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
       - HYPERKITTY_API_KEY=${HYPERKITTY_API_KEY:?missing HYPERKITTY_API_KEY}
       - MTA=${MTA:-exim}
@@ -55,8 +55,8 @@ services:
     volumes:
       - ./data/web:/opt/mailman-web-data
     environment:
-      - DATABASE_TYPE=postgres
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
+      - DATABASE_TYPE=postgresql
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
       - DATABASE_CLASS=mailman.database.postgresql.PostgreSQLDatabase
       - SECRET_KEY=${SECRET_KEY:?missing SECRET_KEY}
       - UWSGI_STATIC_MAP=/static=/opt/mailman-web-data/static
