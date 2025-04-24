@@ -1,15 +1,9 @@
 services:
   mailman-core:
     image: maxking/mailman-core:0.5.2 # Use a specific version tag (tag latest is not published)
-#    container_name: mailman-core
-#    hostname: mailman-core
     restart: unless-stopped
-    user: ${PUID:-1000}:${PGID:-1000}
     security_opt:
       - "no-new-privileges:true"
-    cap_drop:
-      - SETUID
-      - SETGID
     volumes:
       - ./data/core:/opt/mailman/
     stop_grace_period: 30s
@@ -30,28 +24,18 @@ services:
     expose:
       - 8001 #API
     ports:
-#      - "127.0.0.1:8001:8001" # API
+      #- "127.0.0.1:8001:8001" # API
       - "127.0.0.1:8024:8024" # LMTP - incoming emails
     networks:
       - mailman
-
   mailman-web:
     image: maxking/mailman-web:0.5.2 # Use a specific version tag (tag latest is not published)
-#    container_name: mailman-web
-#    hostname: mailman-web
     restart: unless-stopped
-    user: ${PUID:-1000}:${PGID:-1000}
     security_opt:
       - "no-new-privileges:true"
-    cap_drop:
-      - SETUID
-      - SETGID
     depends_on:
       database:
         condition: service_healthy
-#    links:
-#      - mailman-core:mailman-core
-#      - database:database
     volumes:
       - ./data/web:/opt/mailman-web-data
     environment:
@@ -84,22 +68,14 @@ services:
     expose:
       - 8000 #HTTP
       - 8080 #uwsgi
-#    ports:
-#      - "127.0.0.1:8000:8000" # HTTP
-#      - "127.0.0.1:8080:8080" # uwsgi
     networks:
       - mailman
       - traefik-proxy
-
   database:
     image: postgres:12-alpine
     restart: always
-    user: ${PUID:-1000}:${PGID:-1000}
     security_opt:
       - "no-new-privileges:true"
-    cap_drop:
-      - SETUID
-      - SETGID
     healthcheck:
       test: ["CMD-SHELL", "pg_isready --dbname ${POSTGRES_DB:-mailman} --username ${POSTGRES_USER:-mailman}"]
       interval: 10s
@@ -113,7 +89,6 @@ services:
     - ./data/database:/var/lib/postgresql/data
     networks:
       - mailman
-
 networks:
   mailman:
   traefik-proxy:
